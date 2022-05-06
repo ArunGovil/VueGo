@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,14 +15,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var Version = "Welcome to VueGo!"
+var Version = "Welcome"
 
 func main() {
 	var (
-		err error
+		err               error
+		nodeContextCancel context.CancelFunc
 	)
 
 	logger := logrus.New().WithField("who", "Example")
+
 	httpServer := echo.New()
 	httpServer.Use(middleware.CORS())
 
@@ -47,7 +51,28 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt, syscall.SIGQUIT, syscall.SIGTERM)
 
+	if Version == "Welcome" {
+		_, nodeContextCancel = context.WithCancel(context.Background())
+	}
+
+	go func() {
+		logger.Info("Starting Node development server...")
+		var cmd *exec.Cmd
+		var err error
+
+		if cmd, err = StartClientApp(); err != nil {
+			logger.WithError(err).Fatal("Error starting Node server..")
+		}
+
+		cmd.Wait()
+		logger.Info("Stopping Node development server...")
+	}()
+
 	<-quit
+
+	if Version == "Welcome" {
+		nodeContextCancel()
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -57,4 +82,18 @@ func main() {
 	}
 
 	logger.Info("Application stopped")
+
+}
+
+func StartClientApp() (*exec.Cmd, error) {
+	var err error
+
+	cmd := exec.Command("yarn", "serve")
+	cmd.Dir = "./frontend"
+	cmd.Stdout = os.Stdout
+
+	if err = cmd.Start(); err != nil {
+		return cmd, fmt.Errorf("Error starting Yarn: %W", err)
+	}
+	return cmd, nil
 }
