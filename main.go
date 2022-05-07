@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ArunGovil/VueGo/assets"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ func main() {
 	httpServer := echo.New()
 	httpServer.Use(middleware.CORS())
 
+	httpServer.GET("/*", echo.WrapHandler(http.FileServer(assets.Assets)))
 	httpServer.GET("/api/version", func(ctx echo.Context) error {
 		return ctx.String(http.StatusOK, Version)
 	})

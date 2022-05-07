@@ -5,7 +5,7 @@ package main
 import (
 	"log"
 
-	"./assets"
+	"github.com/ArunGovil/VueGo/assets"
 	"github.com/shurcooL/vfsgen"
 )
 
